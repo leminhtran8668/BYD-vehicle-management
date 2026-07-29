@@ -18,14 +18,28 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Khởi tạo Gradle Wrapper 8.5 tự động
+      # 1. Cài đặt Android SDK, Build-Tools và Platform-Tools chuẩn của Google
+      - name: Set up Android SDK & Build-Tools
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '11.0'
+          accept-android-sdk-licenses: true
+
+      - name: Install SDK Packages (Platform-Tools & Build-Tools 34)
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      # 2. Tạo Wrapper Gradle 8.5 chuẩn chạy trên nền SDK vừa cài
+      - name: Khởi tạo Gradle Wrapper 8.5
         run: |
           gradle wrapper --gradle-version 8.5
           chmod +x ./gradlew
 
+      # 3. Tiến hành biên dịch APK
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      # 4. Xuất file APK thành phẩm
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v5
         with:
