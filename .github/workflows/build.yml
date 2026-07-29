@@ -1,4 +1,4 @@
-name: BYD-vehicle-management
+name: Build BYD 
 
 on:
   push:
@@ -19,36 +19,45 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Tự động đồng ý mọi điều khoản Android SDK có sẵn trên máy ảo GitHub
+      # Tự động chấp nhận license của Android SDK sẵn có trên máy ảo
       - name: Accept Android SDK Licenses
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      # Đẻ ra file Wrapper 8.5 ở thư mục tạm để tránh bị dính xung đột cấu hình
-      - name: Khởi tạo Gradle Wrapper 8.5
+      # Khởi tạo Gradle Wrapper 8.5 ở hệ thống tạm /tmp để cách ly hoàn toàn
+      - name: Khởi tạo Gradle Wrapper 8.5 độc lập
         run: |
           if [ ! -f "./gradlew" ]; then
-            echo "Đang khởi tạo Gradle Wrapper..."
-            mkdir -p temp_wrapper
-            cd temp_wrapper
+            echo "Đang khởi tạo Gradle Wrapper hoàn toàn độc lập..."
+            mkdir -p /tmp/standalone_wrapper
+            cd /tmp/standalone_wrapper
+            
+            # Tạo file settings rỗng để Gradle không soi ngược ra thư mục cha
+            touch settings.gradle.kts
+            
+            # Tạo wrapper bản 8.5
             gradle wrapper --gradle-version 8.5
-            cd ..
-            cp temp_wrapper/gradlew ./gradlew
-            cp temp_wrapper/gradlew.bat ./gradlew.bat 2>/dev/null || true
+            
+            # Chép toàn bộ bộ file wrapper vừa tạo vào dự án
+            cd $GITHUB_WORKSPACE
+            cp /tmp/standalone_wrapper/gradlew ./
+            cp /tmp/standalone_wrapper/gradlew.bat ./ 2>/dev/null || true
             mkdir -p gradle/wrapper
-            cp temp_wrapper/gradle/wrapper/gradle-wrapper.jar gradle/wrapper/ 2>/dev/null || true
-            rm -rf temp_wrapper
+            cp -r /tmp/standalone_wrapper/gradle/wrapper/* gradle/wrapper/
+            
+            # Dọn dẹp thư mục tạm
+            rm -rf /tmp/standalone_wrapper
           fi
           chmod +x ./gradlew
 
-      # Biên dịch ra file APK
+      # Tiến hành build file APK
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # Đóng gói xuất file APK ra cho sếp tải về
+      # Xuất file APK thành phẩm
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BYD-vehicle-management
+          name: BYD
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
