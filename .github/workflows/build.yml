@@ -1,4 +1,4 @@
-name: Build BYD Power Manager APK
+name: Build BYD Power Manager Apk
 
 on:
   push:
