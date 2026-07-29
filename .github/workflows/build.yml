@@ -1,4 +1,4 @@
-name: Build BYD 
+name: Build BYD Vehicle Management APK
 
 on:
   push:
@@ -19,45 +19,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Tự động chấp nhận license của Android SDK sẵn có trên máy ảo
-      - name: Accept Android SDK Licenses
+      - name: Chấp nhận License Android SDK
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      # Khởi tạo Gradle Wrapper 8.5 ở hệ thống tạm /tmp để cách ly hoàn toàn
-      - name: Khởi tạo Gradle Wrapper 8.5 độc lập
+      - name: Tải Gradle 8.5 Standalone (Chuẩn đét cho AGP 8.2.2)
         run: |
-          if [ ! -f "./gradlew" ]; then
-            echo "Đang khởi tạo Gradle Wrapper hoàn toàn độc lập..."
-            mkdir -p /tmp/standalone_wrapper
-            cd /tmp/standalone_wrapper
-            
-            # Tạo file settings rỗng để Gradle không soi ngược ra thư mục cha
-            touch settings.gradle.kts
-            
-            # Tạo wrapper bản 8.5
-            gradle wrapper --gradle-version 8.5
-            
-            # Chép toàn bộ bộ file wrapper vừa tạo vào dự án
-            cd $GITHUB_WORKSPACE
-            cp /tmp/standalone_wrapper/gradlew ./
-            cp /tmp/standalone_wrapper/gradlew.bat ./ 2>/dev/null || true
-            mkdir -p gradle/wrapper
-            cp -r /tmp/standalone_wrapper/gradle/wrapper/* gradle/wrapper/
-            
-            # Dọn dẹp thư mục tạm
-            rm -rf /tmp/standalone_wrapper
-          fi
-          chmod +x ./gradlew
+          echo "Đang tải Gradle 8.5 chính chủ..."
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip -O /tmp/gradle-8.5-bin.zip
+          unzip -q /tmp/gradle-8.5-bin.zip -d /tmp/
+          rm /tmp/gradle-8.5-bin.zip
 
-      # Tiến hành build file APK
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build Debug APK bằng Gradle 8.5
+        run: |
+          /tmp/gradle-8.5/bin/gradle assembleDebug --stacktrace
 
-      # Xuất file APK thành phẩm
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BYD
+          name: BYD-Vehicle-Management-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
